@@ -11,22 +11,23 @@ API_KEY = "sk-e4eaafa61ff349cbb93e554b64c22dcb"
 # 更新 API 端点
 BASE_URL = "https://api.deepseek.com/v1/chat/completions"
 
-def call_deepseek_api(text, task):
-    """调用 DeepSeek API 进行内容分析和优化"""
-    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-    payload = json.dumps({
-        "model": "deepseek-chat",
-        "messages": [
-            {"role": "system", "content": "You are a helpful assistant"},
-            {"role": "user", "content": f"{task}: {text}"}
-        ],
-        "stream": False
-    })
-    response = requests.post(BASE_URL, headers=headers, data=payload)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {"error": f"请求失败: {response.status_code}, 错误信息: {response.text}"}
+def call_deepseek_api(text, task, status_message):
+    """调用 DeepSeek API 进行内容分析和优化，并显示不同阶段的加载信息"""
+    with st.spinner(status_message):
+        headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+        payload = json.dumps({
+            "model": "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": "你是一名专业的短视频文案优化专家，专注于优化符合爆款逻辑的内容。"},
+                {"role": "user", "content": f"{task}: {text}"}
+            ],
+            "stream": False
+        })
+        response = requests.post(BASE_URL, headers=headers, data=payload)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"请求失败: {response.status_code}, 错误信息: {response.text}"}
 
 def analyze_content(user_input):
     """分析用户提供的文本内容，并根据关键评估维度进行诊断"""
@@ -55,43 +56,45 @@ def main():
         if not user_input.strip():
             st.error("请提供输入文本。")
         else:
-            with st.spinner("正在检测，请稍候..."):
-                scores = analyze_content(user_input)
-                optimized_response = call_deepseek_api(user_input, "请基于抖音短视频爆款逻辑优化该文案，并符合黄金3秒原则，按照爆款公式进行优化")
-                title_response = call_deepseek_api(user_input, "请生成符合短视频爆款逻辑的爆款标题")
-                topics_response = call_deepseek_api(user_input, "请提供6个与该内容相关的抖音爆款话题")
-                time_response = call_deepseek_api(user_input, "请推荐适合该内容发布时间")
-                
-                if "error" in optimized_response:
-                    st.error(optimized_response["error"])
-                else:
-                    st.subheader("各项指标得分")
-                    for key, value in scores.items():
-                        st.write(f"{key}: {value:.2f}%")
-                        st.progress(value / 100)
-                    
-                    st.subheader("优化后的文案")
-                    optimized_text = optimized_response.get("choices", [{}])[0].get("message", {}).get("content", "无优化建议")
-                    st.text_area("优化后的文案：", value=optimized_text, height=200)
-                    
-                    st.subheader("推荐爆款标题")
-                    title_text = title_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成标题")
-                    st.write(title_text)
-                    
-                    st.subheader("推荐爆款话题（6个）")
-                    topics_text = topics_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成话题")
-                    st.write(topics_text)
-                    
-                    st.subheader("推荐发布时间")
-                    time_text = time_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成发布时间")
-                    st.write(time_text)
-                    
-                    results_df = pd.DataFrame({"评估维度": scores.keys(), "得分": scores.values()})
-                    st.write(results_df)
-                    
-                    if st.button("导出历史记录"):
-                        results_df.to_csv("diagnosis_history.csv", index=False)
-                        st.success("历史记录已导出")
+            scores = analyze_content(user_input)
+            optimized_response = call_deepseek_api(user_input, "请基于抖音短视频爆款逻辑优化该文案，符合黄金3秒原则，并按照爆款公式优化", "正在优化爆款文案，请稍候...")
+            title_response = call_deepseek_api(user_input, "请生成符合短视频爆款逻辑的爆款标题", "正在创作爆款标题中，请稍候...")
+            topics_response = call_deepseek_api(user_input, "请提供6个与该内容相关的抖音爆款话题", "正在匹配爆款话题，请稍候...")
+            time_response = call_deepseek_api(user_input, "请推荐适合该内容发布时间", "正在分析最佳发布时间，请稍候...")
+            
+            st.markdown("---")
+            st.header("📊 内容诊断结果")
+            for key, value in scores.items():
+                st.write(f"**{key}**: {value:.2f}%")
+                st.progress(value / 100)
+            
+            st.markdown("---")
+            st.header("✨ 优化后的文案")
+            optimized_text = optimized_response.get("choices", [{}])[0].get("message", {}).get("content", "无优化建议")
+            st.text_area("优化后的爆款文案：", value=optimized_text, height=200)
+            
+            st.markdown("---")
+            st.header("🚀 推荐爆款标题")
+            title_text = title_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成标题")
+            st.write(f"### {title_text}")
+            
+            st.markdown("---")
+            st.header("🔥 推荐爆款话题（6个）")
+            topics_text = topics_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成话题")
+            st.write(topics_text)
+            
+            st.markdown("---")
+            st.header("⏰ 推荐发布时间")
+            time_text = time_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成发布时间")
+            st.write(time_text)
+            
+            st.markdown("---")
+            results_df = pd.DataFrame({"评估维度": scores.keys(), "得分": scores.values()})
+            st.write(results_df)
+            
+            if st.button("导出历史记录"):
+                results_df.to_csv("diagnosis_history.csv", index=False)
+                st.success("历史记录已导出")
 
 if __name__ == "__main__":
     main()
