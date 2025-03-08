@@ -44,9 +44,7 @@ def main():
         ]
 
     status_list = st.session_state["status"]
-    
-    # 用于动态显示状态
-    status_display = st.empty()
+    status_display = [st.empty() for _ in status_list]  # 每个状态单独一行
 
     if st.button("🚀 开始诊断"):
         if not user_input.strip():
@@ -55,7 +53,8 @@ def main():
             for i, task in enumerate(status_list):
                 # 更新当前步骤状态
                 status_list[i] = f"⏳ 正在{task}，请稍候..."
-                status_display.markdown("\n".join([f"**{s}**" if "⏳" in s else s for s in status_list]))
+                for j, display in enumerate(status_display):
+                    display.markdown(f"**{status_list[j]}**" if "⏳" in status_list[j] else status_list[j])
                 time.sleep(2)
 
                 if i == 0:
@@ -74,10 +73,11 @@ def main():
                 elif i == 4:
                     time_response = call_deepseek_api(user_input, "请推荐最佳发布时间")
                     time_text = time_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成发布时间")
-
+                
                 # 任务完成，更新状态
                 status_list[i] = f"✅ {task}完成"
-                status_display.markdown("\n".join([f"**{s}**" if '✅' in s else s for s in status_list]))
+                for j, display in enumerate(status_display):
+                    display.markdown(f"**{status_list[j]}**" if '✅' in status_list[j] else status_list[j])
                 time.sleep(1)
             
             # 结果展示
