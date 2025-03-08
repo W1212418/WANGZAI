@@ -39,7 +39,6 @@ def main():
             "内容分析",
             "优化爆款文案",
             "生成爆款标题",
-            "匹配爆款话题",
             "分析最佳发布时间"
         ]
 
@@ -54,7 +53,7 @@ def main():
                 # 更新当前步骤状态
                 status_list[i] = f"⏳ 正在{task}，请稍候..."
                 for j, display in enumerate(status_display):
-                    display.markdown(f"**{status_list[j]}**" if "⏳" in status_list[j] else status_list[j])
+                    display.write(f"**{status_list[j]}**" if "⏳" in status_list[j] else status_list[j])
                 time.sleep(2)
 
                 if i == 0:
@@ -68,16 +67,13 @@ def main():
                     title_response = call_deepseek_api(user_input, "请生成符合社交传播逻辑的爆款标题")
                     title_text = title_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成标题")
                 elif i == 3:
-                    topics_response = call_deepseek_api(user_input, "请提供6个热门社交媒体话题")
-                    topics_text = topics_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成话题")
-                elif i == 4:
                     time_response = call_deepseek_api(user_input, "请推荐最佳发布时间")
                     time_text = time_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成发布时间")
                 
                 # 任务完成，更新状态
                 status_list[i] = f"✅ {task}完成"
                 for j, display in enumerate(status_display):
-                    display.markdown(f"**{status_list[j]}**" if '✅' in status_list[j] else status_list[j])
+                    display.write(f"**{status_list[j]}**" if '✅' in status_list[j] else status_list[j])
                 time.sleep(1)
             
             # 结果展示
@@ -88,10 +84,6 @@ def main():
             st.markdown("---")
             st.subheader("🚀 推荐爆款标题")
             st.write(f"### {title_text}")
-            
-            st.markdown("---")
-            st.subheader("🔥 推荐爆款话题（6个）")
-            st.write(topics_text)
             
             st.markdown("---")
             st.subheader("⏰ 推荐发布时间")
