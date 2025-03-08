@@ -33,11 +33,12 @@ def show_progress(text):
     """动态显示进度条，并逐渐显示完成状态"""
     progress_bar = st.progress(0)
     status_text = st.empty()
-    for i in range(1, 101, 5):
+    for i in range(1, 101):
         progress_bar.progress(i / 100)
         status_text.write(f"{text} {i}%")
-        time.sleep(0.1)
+        time.sleep(0.02)
     status_text.write(f"{text} 完成 ✅")
+    time.sleep(0.5)
 
 def analyze_content(user_input):
     """分析用户提供的文本内容，并计算爆款潜质"""
