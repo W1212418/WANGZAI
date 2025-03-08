@@ -4,6 +4,7 @@ import json
 import pandas as pd
 import streamlit as st
 import numpy as np
+import time
 
 # 硬编码 DeepSeek API Key
 API_KEY = "sk-e4eaafa61ff349cbb93e554b64c22dcb"
@@ -28,13 +29,19 @@ def call_deepseek_api(text, task):
     else:
         return {"error": f"请求失败: {response.status_code}, 错误信息: {response.text}"}
 
+def show_progress(text):
+    """动态显示进度条，并逐渐显示完成状态"""
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    for i in range(1, 101, 5):
+        progress_bar.progress(i / 100)
+        status_text.write(f"{text} {i}%")
+        time.sleep(0.1)
+    status_text.write(f"{text} 完成 ✅")
+
 def analyze_content(user_input):
     """分析用户提供的文本内容，并计算爆款潜质"""
-    st.write("正在诊断内容...")
-    progress = st.progress(0)
-    for i in range(1, 101, 10):
-        progress.progress(i / 100)
-    st.success("诊断完成 ✅")
+    show_progress("正在诊断内容")
     return min(len(user_input.split()) * 2, 100)
 
 def main():
@@ -50,39 +57,23 @@ def main():
             score = analyze_content(user_input)
             
             # 调用 API 进行优化
-            st.write("正在优化爆款文案...")
-            progress = st.progress(0)
-            for i in range(1, 101, 10):
-                progress.progress(i / 100)
+            show_progress("正在优化爆款文案")
             optimized_response = call_deepseek_api(user_input, "请优化该文案，使其符合短视频爆款逻辑")
-            st.success("文案优化完成 ✅")
             
-            st.write("正在生成爆款标题...")
-            progress.progress(0)
-            for i in range(1, 101, 10):
-                progress.progress(i / 100)
+            show_progress("正在生成爆款标题")
             title_response = call_deepseek_api(user_input, "请生成符合社交传播逻辑的爆款标题")
-            st.success("爆款标题生成完成 ✅")
             
-            st.write("正在匹配爆款话题...")
-            progress.progress(0)
-            for i in range(1, 101, 10):
-                progress.progress(i / 100)
+            show_progress("正在匹配爆款话题")
             topics_response = call_deepseek_api(user_input, "请提供6个热门社交媒体话题")
-            st.success("爆款话题匹配完成 ✅")
             
-            st.write("正在分析最佳发布时间...")
-            progress.progress(0)
-            for i in range(1, 101, 10):
-                progress.progress(i / 100)
+            show_progress("正在分析最佳发布时间")
             time_response = call_deepseek_api(user_input, "请推荐最佳发布时间")
-            st.success("最佳发布时间分析完成 ✅")
             
             # 结果展示
             st.markdown("---")
             st.subheader("📊 内容诊断结果")
             st.write(f"**内容爆款率**: {score:.2f}%")
-            st.progress(1.0)
+            st.progress(score / 100)
             st.button("📋 复制爆款率", on_click=lambda: st.write("✅ 已复制"))
             
             st.markdown("---")
