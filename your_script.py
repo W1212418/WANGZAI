@@ -6,16 +6,28 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
 
-def call_deepseek_api(text, api_key):
+# 硬编码 DeepSeek API Key（⚠️ 仅用于测试，建议使用环境变量存储）
+API_KEY = "sk-e4eaafa61ff349cbb93e554b64c22dcb"
+
+# 更新 API 端点
+BASE_URL = "https://api.deepseek.com/v1/chat/completions"
+
+def call_deepseek_api(text):
     """调用 DeepSeek API 进行内容分析"""
-    url = "https://api.deepseek.com/analyze"
-    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    payload = json.dumps({"text": text})
-    response = requests.post(url, headers=headers, data=payload)
+    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+    payload = json.dumps({
+        "model": "deepseek-chat",
+        "messages": [
+            {"role": "system", "content": "You are a helpful assistant"},
+            {"role": "user", "content": text}
+        ],
+        "stream": False
+    })
+    response = requests.post(BASE_URL, headers=headers, data=payload)
     if response.status_code == 200:
         return response.json()
     else:
-        return {"error": f"请求失败: {response.status_code}"}
+        return {"error": f"请求失败: {response.status_code}, 错误信息: {response.text}"}
 
 def analyze_content(user_input):
     """分析用户提供的文本内容，并根据关键评估维度进行诊断"""
@@ -58,14 +70,13 @@ def visualize_results(scores):
 def main():
     """Streamlit 应用主入口"""
     st.title("智能内容诊断系统")
-    api_key = st.text_input("请输入 DeepSeek API Key", type="password")
     user_input = st.text_area("请输入需要分析的文本内容：")
     
     if st.button("开始诊断"):
-        if not api_key or not user_input.strip():
-            st.error("请提供 API Key 并输入文本。")
+        if not user_input.strip():
+            st.error("请提供输入文本。")
         else:
-            deepseek_response = call_deepseek_api(user_input, api_key)
+            deepseek_response = call_deepseek_api(user_input)
             scores, guidance_notes = analyze_content(user_input)
             
             if "error" in deepseek_response:
