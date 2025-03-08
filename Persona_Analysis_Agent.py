@@ -64,6 +64,9 @@ def main():
                 progress_bar.progress(i / 100)
                 time.sleep(0.1)
             
+            status_text.write("✅ 账号人设分析完成")
+            progress_bar.progress(1.0)
+            
             # 组装输入数据
             input_data = {
                 "account_name": account_name,
