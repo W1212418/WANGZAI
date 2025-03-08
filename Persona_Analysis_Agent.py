@@ -42,6 +42,8 @@ def main():
     
     if "hot_topics" not in st.session_state:
         st.session_state["hot_topics"] = None
+    if "analysis_result" not in st.session_state:
+        st.session_state["analysis_result"] = None
     
     with st.form("user_input_form"):
         account_name = st.text_input("📌 账号名称")
@@ -64,9 +66,6 @@ def main():
                 progress_bar.progress(i / 100)
                 time.sleep(0.1)
             
-            status_text.write("✅ 账号人设分析完成")
-            progress_bar.progress(1.0)
-            
             # 组装输入数据
             input_data = {
                 "account_name": account_name,
@@ -79,34 +78,33 @@ def main():
             
             # 账号人设分析
             analysis_response = call_deepseek_api(json.dumps(input_data, ensure_ascii=False), "账号人设分析")
-            analysis_result = analysis_response.get("choices", [{}])[0].get("message", {}).get("content", "分析失败")
-            st.success("✅ 账号人设分析完成")
+            st.session_state["analysis_result"] = analysis_response.get("choices", [{}])[0].get("message", {}).get("content", "分析失败")
+            status_text.write("✅ 账号人设分析完成")
+            progress_bar.progress(1.0)
             
-            # 结果展示
-            st.markdown("---")
-            st.subheader("📊 账号人设分析报告")
-            st.write(analysis_result)
-            
-            # 生成行业爆款选题（保持当前页面）
-            if st.button("🔥 生成行业爆款选题"):
-                with st.spinner("正在生成爆款选题，请稍候..."):
-                    st.session_state["hot_topics"] = generate_hot_topics(analysis_result)
-            
-            # 显示已生成的爆款选题
-            if st.session_state["hot_topics"]:
+    if st.session_state["analysis_result"]:
+        st.markdown("---")
+        st.subheader("📊 账号人设分析报告")
+        st.write(st.session_state["analysis_result"])
+        
+        # 生成行业爆款选题（保持当前页面）
+        if st.button("🔥 生成行业爆款选题"):
+            with st.spinner("正在生成爆款选题，请稍候..."):
+                st.session_state["hot_topics"] = generate_hot_topics(st.session_state["analysis_result"])
                 st.success("✅ 爆款选题生成完成")
                 st.write(st.session_state["hot_topics"])
-                
-                # 换一批选题
-                if st.button("🔄 换一批选题"):
-                    with st.spinner("正在重新生成新的爆款选题，请稍候..."):
-                        st.session_state["hot_topics"] = generate_hot_topics(analysis_result)
-                        st.success("✅ 新的爆款选题生成完成")
-                        st.write(st.session_state["hot_topics"])
-            
-            st.markdown("---")
-            st.markdown("📢 全平台 @旺仔AIGC 📢")
-            st.markdown("关注我，和我一起 拆解流量密码，探索 AI创作新玩法，让你的 账号精准定位，内容不再迷路！🚀")
+        
+        # 换一批选题
+        if st.session_state["hot_topics"]:
+            if st.button("🔄 换一批选题"):
+                with st.spinner("正在重新生成新的爆款选题，请稍候..."):
+                    st.session_state["hot_topics"] = generate_hot_topics(st.session_state["analysis_result"])
+                    st.success("✅ 新的爆款选题生成完成")
+                    st.write(st.session_state["hot_topics"])
+        
+        st.markdown("---")
+        st.markdown("📢 全平台 @旺仔AIGC 📢")
+        st.markdown("关注我，和我一起 拆解流量密码，探索 AI创作新玩法，让你的 账号精准定位，内容不再迷路！🚀")
 
 if __name__ == "__main__":
     main()
