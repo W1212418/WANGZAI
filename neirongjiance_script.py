@@ -33,17 +33,20 @@ def show_progress(text):
     """动态显示进度条，并逐渐显示完成状态"""
     progress_bar = st.progress(0)
     status_text = st.empty()
-    for i in range(1, 101):
+    for i in range(1, 101, 5):
         progress_bar.progress(i / 100)
         status_text.write(f"{text} {i}%")
-        time.sleep(0.02)
+        time.sleep(0.01)
     status_text.write(f"{text} 完成 ✅")
-    time.sleep(0.5)
 
 def analyze_content(user_input):
     """分析用户提供的文本内容，并计算爆款潜质"""
     show_progress("正在诊断内容")
-    return min(len(user_input.split()) * 2, 100)
+    score = min(len(user_input.split()) * 2, 100)
+    st.subheader("📊 内容诊断结果")
+    st.write(f"**内容爆款率**: {score:.2f}%")
+    st.progress(score / 100)
+    return score
 
 def main():
     """Streamlit 应用主入口"""
@@ -60,46 +63,27 @@ def main():
             # 调用 API 进行优化
             show_progress("正在优化爆款文案")
             optimized_response = call_deepseek_api(user_input, "请优化该文案，使其符合短视频爆款逻辑")
+            optimized_text = optimized_response.get("choices", [{}])[0].get("message", {}).get("content", "无优化建议")
+            st.subheader("✨ 优化后的文案")
+            st.text_area("优化后的爆款文案：", value=optimized_text, height=200)
             
             show_progress("正在生成爆款标题")
             title_response = call_deepseek_api(user_input, "请生成符合社交传播逻辑的爆款标题")
+            title_text = title_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成标题")
+            st.subheader("🚀 推荐爆款标题")
+            st.write(f"### {title_text}")
             
             show_progress("正在匹配爆款话题")
             topics_response = call_deepseek_api(user_input, "请提供6个热门社交媒体话题")
+            topics_text = topics_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成话题")
+            st.subheader("🔥 推荐爆款话题（6个）")
+            st.write(topics_text)
             
             show_progress("正在分析最佳发布时间")
             time_response = call_deepseek_api(user_input, "请推荐最佳发布时间")
-            
-            # 结果展示
-            st.markdown("---")
-            st.subheader("📊 内容诊断结果")
-            st.write(f"**内容爆款率**: {score:.2f}%")
-            st.progress(score / 100)
-            st.button("📋 复制爆款率", on_click=lambda: st.write("✅ 已复制"))
-            
-            st.markdown("---")
-            st.subheader("✨ 优化后的文案")
-            optimized_text = optimized_response.get("choices", [{}])[0].get("message", {}).get("content", "无优化建议")
-            st.text_area("优化后的爆款文案：", value=optimized_text, height=200)
-            st.button("📋 复制优化文案", on_click=lambda: st.write("✅ 已复制"))
-            
-            st.markdown("---")
-            st.subheader("🚀 推荐爆款标题")
-            title_text = title_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成标题")
-            st.write(f"### {title_text}")
-            st.button("📋 复制爆款标题", on_click=lambda: st.write("✅ 已复制"))
-            
-            st.markdown("---")
-            st.subheader("🔥 推荐爆款话题（6个）")
-            topics_text = topics_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成话题")
-            st.write(topics_text)
-            st.button("📋 复制爆款话题", on_click=lambda: st.write("✅ 已复制"))
-            
-            st.markdown("---")
-            st.subheader("⏰ 推荐发布时间")
             time_text = time_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成发布时间")
+            st.subheader("⏰ 推荐发布时间")
             st.write(time_text)
-            st.button("📋 复制发布时间", on_click=lambda: st.write("✅ 已复制"))
             
             st.markdown("---")
             st.markdown("📢 全平台 @旺仔AIGC 📢")
