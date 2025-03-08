@@ -40,6 +40,9 @@ def main():
     """Streamlit 应用主入口"""
     st.title("📢 DeepSeek 账号人设规划系统")
     
+    if "hot_topics" not in st.session_state:
+        st.session_state["hot_topics"] = None
+    
     with st.form("user_input_form"):
         account_name = st.text_input("📌 账号名称")
         industry = st.text_input("🏢 所在行业")
@@ -81,22 +84,22 @@ def main():
             st.subheader("📊 账号人设分析报告")
             st.write(analysis_result)
             
-            # 添加生成爆款选题按钮
+            # 生成行业爆款选题（保持当前页面）
             if st.button("🔥 生成行业爆款选题"):
                 with st.spinner("正在生成爆款选题，请稍候..."):
-                    hot_topics = generate_hot_topics(analysis_result)
-                    st.session_state["hot_topics"] = hot_topics
-                    st.success("✅ 爆款选题生成完成")
-                    st.write(hot_topics)
+                    st.session_state["hot_topics"] = generate_hot_topics(analysis_result)
             
-            # 换一批选题
-            if "hot_topics" in st.session_state:
+            # 显示已生成的爆款选题
+            if st.session_state["hot_topics"]:
+                st.success("✅ 爆款选题生成完成")
+                st.write(st.session_state["hot_topics"])
+                
+                # 换一批选题
                 if st.button("🔄 换一批选题"):
                     with st.spinner("正在重新生成新的爆款选题，请稍候..."):
-                        new_hot_topics = generate_hot_topics(analysis_result)
-                        st.session_state["hot_topics"] = new_hot_topics
+                        st.session_state["hot_topics"] = generate_hot_topics(analysis_result)
                         st.success("✅ 新的爆款选题生成完成")
-                        st.write(new_hot_topics)
+                        st.write(st.session_state["hot_topics"])
             
             st.markdown("---")
             st.markdown("📢 全平台 @旺仔AIGC 📢")
