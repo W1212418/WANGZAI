@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 import numpy as np
 
-# 硬编码 DeepSeek API Key（⚠️ 仅用于测试，建议使用环境变量存储）
+# 硬编码 DeepSeek API Key
 API_KEY = "sk-e4eaafa61ff349cbb93e554b64c22dcb"
 
 # 更新 API 端点
