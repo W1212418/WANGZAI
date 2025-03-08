@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import streamlit as st
 import numpy as np
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 
 # 硬编码 DeepSeek API Key（⚠️ 仅用于测试，建议使用环境变量存储）
 API_KEY = "sk-e4eaafa61ff349cbb93e554b64c22dcb"
@@ -48,20 +48,20 @@ def analyze_content(user_input):
     return scores
 
 def visualize_results(scores):
-    """使用 Plotly 生成五角形雷达图"""
+    """使用 Matplotlib 生成五角形雷达图"""
     labels = list(scores.keys())
     values = list(scores.values())
-    values.append(values[0])  # 形成闭合图形
+    values += values[:1]  # 形成闭合图形
+    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+    angles += angles[:1]
     
-    fig = go.Figure()
-    fig.add_trace(go.Scatterpolar(r=values, theta=labels, fill='toself', name='内容诊断'))
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    ax.fill(angles, values, color='b', alpha=0.3)
+    ax.plot(angles, values, color='b', linewidth=2)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels)
     
-    fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-        showlegend=False
-    )
-    
-    st.plotly_chart(fig)
+    st.pyplot(fig)
 
 def main():
     """Streamlit 应用主入口"""
