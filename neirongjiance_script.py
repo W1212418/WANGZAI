@@ -4,7 +4,6 @@ import json
 import pandas as pd
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
 
 # 硬编码 DeepSeek API Key（⚠️ 仅用于测试，建议使用环境变量存储）
 API_KEY = "sk-e4eaafa61ff349cbb93e554b64c22dcb"
@@ -12,14 +11,14 @@ API_KEY = "sk-e4eaafa61ff349cbb93e554b64c22dcb"
 # 更新 API 端点
 BASE_URL = "https://api.deepseek.com/v1/chat/completions"
 
-def call_deepseek_api(text):
-    """调用 DeepSeek API 进行内容分析"""
+def call_deepseek_api(text, task):
+    """调用 DeepSeek API 进行内容分析和优化"""
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     payload = json.dumps({
         "model": "deepseek-chat",
         "messages": [
             {"role": "system", "content": "You are a helpful assistant"},
-            {"role": "user", "content": text}
+            {"role": "user", "content": f"{task}: {text}"}
         ],
         "stream": False
     })
@@ -47,22 +46,6 @@ def analyze_content(user_input):
     scores["爆款潜质"] = np.mean(list(scores.values()))  # 计算爆款潜质
     return scores
 
-def visualize_results(scores):
-    """使用 Matplotlib 生成五角形雷达图"""
-    labels = list(scores.keys())
-    values = list(scores.values())
-    values += values[:1]  # 形成闭合图形
-    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
-    angles += angles[:1]
-    
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
-    ax.fill(angles, values, color='b', alpha=0.3)
-    ax.plot(angles, values, color='b', linewidth=2)
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels)
-    
-    st.pyplot(fig)
-
 def main():
     """Streamlit 应用主入口"""
     st.title("智能内容诊断系统")
@@ -73,20 +56,35 @@ def main():
             st.error("请提供输入文本。")
         else:
             with st.spinner("正在检测，请稍候..."):
-                deepseek_response = call_deepseek_api(user_input)
                 scores = analyze_content(user_input)
+                optimized_response = call_deepseek_api(user_input, "请基于抖音短视频爆款逻辑优化该文案，并符合黄金3秒原则，按照爆款公式进行优化")
+                title_response = call_deepseek_api(user_input, "请生成符合短视频爆款逻辑的爆款标题")
+                topics_response = call_deepseek_api(user_input, "请提供6个与该内容相关的抖音爆款话题")
+                time_response = call_deepseek_api(user_input, "请推荐适合该内容发布时间")
                 
-                if "error" in deepseek_response:
-                    st.error(deepseek_response["error"])
+                if "error" in optimized_response:
+                    st.error(optimized_response["error"])
                 else:
-                    visualize_results(scores)
+                    st.subheader("各项指标得分")
+                    for key, value in scores.items():
+                        st.write(f"{key}: {value:.2f}%")
+                        st.progress(value / 100)
                     
-                    st.subheader("爆款潜质分析")
-                    st.progress(scores["爆款潜质"] / 100)
-                    st.write(f"爆款潜质: {scores['爆款潜质']:.2f}%")
+                    st.subheader("优化后的文案")
+                    optimized_text = optimized_response.get("choices", [{}])[0].get("message", {}).get("content", "无优化建议")
+                    st.text_area("优化后的文案：", value=optimized_text, height=200)
                     
-                    st.subheader("优化后的文案建议")
-                    st.text_area("请修改文案后粘贴到此处进行优化", value=user_input, height=200)
+                    st.subheader("推荐爆款标题")
+                    title_text = title_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成标题")
+                    st.write(title_text)
+                    
+                    st.subheader("推荐爆款话题（6个）")
+                    topics_text = topics_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成话题")
+                    st.write(topics_text)
+                    
+                    st.subheader("推荐发布时间")
+                    time_text = time_response.get("choices", [{}])[0].get("message", {}).get("content", "未生成发布时间")
+                    st.write(time_text)
                     
                     results_df = pd.DataFrame({"评估维度": scores.keys(), "得分": scores.values()})
                     st.write(results_df)
