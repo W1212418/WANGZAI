@@ -1,7 +1,3 @@
-# NOTE: Streamlit module is not available in this environment.
-# The following code has been rewritten to run in a standard Python environment.
-# Streamlit UI components have been removed for compatibility.
-
 import re
 import aiohttp
 import asyncio
@@ -13,6 +9,9 @@ import os
 import sqlite3
 from datetime import datetime
 from json import JSONDecodeError
+import streamlit as st
+import altair as alt
+import requests
 
 API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-e4eaafa61ff349cbb93e554b64c22dcb")
 BASE_URL = "https://api.deepseek.com/v1/chat/completions"
@@ -51,8 +50,7 @@ async def compare_competitors_async(competitor_list, platform):
                 "内容数量": result.get("作品数", result.get("笔记数", result.get("视频数", 0)))
             })
     df = pd.DataFrame(data)
-    print("竞品账号对比分析:")
-    print(df)
+    return df
 
 def call_deepseek_api(input_data, task, industry=""):
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
@@ -68,7 +66,6 @@ def call_deepseek_api(input_data, task, industry=""):
     try:
         return response.json()
     except JSONDecodeError:
-        print("API返回格式异常，请检查提示词配置")
         return {}
 
 def parse_analysis_result(raw_result):
@@ -110,64 +107,80 @@ def auto_correct(text):
 def generate_platform_spec(topics, platform):
     return [f"{topic} [{PLATFORM_RULES[platform]['标题规则']}]" for topic in topics]
 
-def main():
-    print("📢 DeepSeek 账号人设规划系统")
+def streamlit_app():
+    st.title("📢 DeepSeek 账号人设规划系统")
+    st.markdown("## 账号基础信息")
+    account_name = st.text_input("📌 账号名称")
+    industry = st.selectbox("🏢 所在行业", VALID_INDUSTRIES)
 
-    account_name = input("📌 请输入账号名称: ")
-    industry = input("🏢 请输入行业（如美妆/教育/3C数码/母婴/美食）: ")
-    core_advantages = input("💡 输入核心优势（以逗号分隔）: ").split(",")
-    target_audience = input("🎯 输入目标人群信息: ")
-    competitor_accounts = input("📊 输入竞品账号（以逗号分隔）: ").split(",")
-    competitor_platform = input("📲 竞品平台（抖音/小红书/视频号）: ")
-    operation_goal = input("🚀 运营目标（粉丝增长/品牌曝光/产品销售/20个爆款选题）: ")
+    st.markdown("## 核心优势")
+    core_advantages = st.text_area("💡 核心优势 (换行分隔)").split("\n")
 
-    print("⏳ 正在分析账号人设，请稍后...")
-    input_data = {
-        "account_name": account_name,
-        "industry": industry,
-        "core_advantages": core_advantages,
-        "target_audience": target_audience,
-        "competitor_accounts": competitor_accounts,
-        "operation_goal": operation_goal
-    }
+    st.markdown("## 目标人群画像")
+    target_audience = st.text_area("👥 年龄/地区/兴趣")
 
-    analysis_response = call_deepseek_api(json.dumps(input_data, ensure_ascii=False), "账号人设分析", industry)
-    raw_result = analysis_response.get("choices", [{}])[0].get("message", {}).get("content", {})
-    parsed_result = parse_analysis_result(raw_result)
+    st.markdown("## 竞品账号分析")
+    competitor_accounts = st.text_area("竞品账号 (换行分隔)").split("\n")
+    competitor_platform = st.selectbox("📲 平台", ["抖音", "小红书", "视频号"])
 
-    print("✅ 分析完成")
-    save_analysis_history(input_data)
+    st.markdown("## 运营目标")
+    operation_goal = st.selectbox("🎯 目标", ["粉丝增长", "品牌曝光", "产品销售", "20个爆款选题"])
 
-    print("📑 账号人设分析完成")
-    print(f"人设定位建议: {parsed_result['人设定位']}")
-    print("差异化分析:")
-    for diff in parsed_result['差异点分析']:
-        print(f"- {diff}")
+    if st.button("🔍 生成账号分析报告"):
+        with st.spinner("正在分析账号人设，请稍后..."):
+            input_data = {
+                "account_name": account_name,
+                "industry": industry,
+                "core_advantages": core_advantages,
+                "target_audience": target_audience,
+                "competitor_accounts": competitor_accounts,
+                "operation_goal": operation_goal
+            }
 
-    print("⚠️ 风险提示:")
-    print(auto_correct(parsed_result['风险提示']))
+            analysis_response = call_deepseek_api(json.dumps(input_data, ensure_ascii=False), "账号人设分析", industry)
+            raw_result = analysis_response.get("choices", [{}])[0].get("message", {}).get("content", {})
+            parsed_result = parse_analysis_result(raw_result)
 
-    if operation_goal == "20个爆款选题":
-        print("⏳ 正在生成爆款选题...")
-        hot_topics_result = call_deepseek_api(parsed_result["人设定位"], "生成20个爆款选题", industry)
-        raw_text = hot_topics_result.get("choices", [{}])[0].get("message", {}).get("content", "未生成选题")
-        print("✅ 选题生成完成")
-        print(raw_text)
-        topics = parse_topics(raw_text)
-        calendar_df = generate_calendar(topics)
+            st.success("✅ 分析完成")
+            save_analysis_history(input_data)
 
-        print("📅 内容排期表:")
-        print(calendar_df)
+            st.subheader("📑 账号人设分析结果")
+            st.markdown(f"**人设定位建议**: {parsed_result['人设定位']}")
+            st.markdown("**差异化分析**:")
+            for diff in parsed_result['差异点分析']:
+                st.markdown(f"- {diff}")
+            st.markdown("**⚠️ 风险提示**:")
+            st.markdown(auto_correct(parsed_result['风险提示']))
 
-        calendar_df.to_csv("content_calendar.csv", index=False)
-        calendar_df.to_excel("content_calendar.xlsx", index=False)
-        calendar_df.to_json("content_calendar.json", orient='records', force_ascii=False)
-        print("📂 文件已导出为 CSV、Excel 和 JSON")
+            if operation_goal == "20个爆款选题":
+                hot_topics_result = call_deepseek_api(parsed_result["人设定位"], "生成20个爆款选题", industry)
+                raw_text = hot_topics_result.get("choices", [{}])[0].get("message", {}).get("content", "未生成选题")
+                topics = parse_topics(raw_text)
+                st.subheader("🔥 生成的爆款选题")
+                for topic in topics:
+                    st.markdown(f"- {topic}")
 
-    asyncio.run(compare_competitors_async(competitor_accounts, competitor_platform))
+                calendar_df = generate_calendar(topics)
+                st.dataframe(calendar_df)
 
-    print("📢 全平台 @旺仔AIGC")
-    print("关注我，和我一起 拆解流量密码，探索 AI创作新玩法，让你的账号精准定位，内容不再迷路！🚀")
+                st.download_button("📅 下载 CSV 格式", calendar_df.to_csv(index=False), "content_calendar.csv")
+                st.download_button("📑 下载 Excel 格式", calendar_df.to_excel(index=False), "content_calendar.xlsx")
+                st.download_button("📝 下载 JSON 格式", calendar_df.to_json(orient='records', force_ascii=False), "content_calendar.json")
+
+            competitor_df = asyncio.run(compare_competitors_async(competitor_accounts, competitor_platform))
+            st.subheader("竞品账号对比分析")
+            st.dataframe(competitor_df)
+
+            chart = alt.Chart(competitor_df).mark_bar().encode(
+                x='账号名称',
+                y='粉丝量级',
+                color='平台'
+            )
+            st.altair_chart(chart, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("📢 全平台 @旺仔AIGC")
+    st.markdown("关注我，和我一起 拆解流量密码，探索 AI创作新玩法，让你的账号精准定位，内容不再迷路！🚀")
 
 if __name__ == "__main__":
-    main()
+    streamlit_app()
