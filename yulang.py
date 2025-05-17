@@ -4,7 +4,7 @@ import json
 import os
 
 # DeepSeek API配置
-API_KEY = os.getenv("DEEPSEEK_API_KEY", "your-deepseek-api-key")
+API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-38a62f45bd574dafb3d96237b0c8d71a")
 BASE_URL = "https://api.deepseek.com/v1/chat/completions"
 
 # 通用请求DeepSeek API函数（增加错误处理）
