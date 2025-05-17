@@ -7,7 +7,7 @@ import os
 API_KEY = os.getenv("DEEPSEEK_API_KEY", "your-deepseek-api-key")
 BASE_URL = "https://api.deepseek.com/v1/chat/completions"
 
-# 通用请求DeepSeek API函数
+# 通用请求DeepSeek API函数（增加错误处理）
 def call_deepseek(prompt, persona):
     headers = {
         "Authorization": f"Bearer {API_KEY}",
@@ -22,7 +22,14 @@ def call_deepseek(prompt, persona):
         "stream": False
     }
     response = requests.post(BASE_URL, headers=headers, json=payload)
-    return response.json()["choices"][0]["message"]["content"]
+    result = response.json()
+
+    if "choices" in result and len(result["choices"]) > 0:
+        return result["choices"][0]["message"]["content"]
+    else:
+        error_message = result.get('error', {}).get('message', '未知错误，请检查API或参数。')
+        st.error(f"DeepSeek API 调用失败: {error_message}")
+        return f"调用失败: {error_message}"
 
 # 各个DeepSeek角色完整提示词
 personas = {
